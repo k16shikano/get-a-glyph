@@ -1,0 +1,16 @@
+[package]
+name = "typeonepico"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "crates/font",
+    "crates/image",
+    "crates/ps_parser",
+]
+
+[dependencies]
+font = { path = "crates/font" }
+image = { path = "crates/image" }
+ps_parser = { path = "crates/ps_parser" }
