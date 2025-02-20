@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "glyph_parser"
+name = "get_a_glyph"
 version = "0.1.0"
 dependencies = [
  "byteorder",
