@@ -16,18 +16,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "image"
-version = "0.1.0"
-
-[[package]]
-name = "ps_parser"
-version = "0.1.0"
-
-[[package]]
-name = "typeonepico"
+name = "glyph_parser"
 version = "0.1.0"
 dependencies = [
+ "byteorder",
  "font",
- "image",
- "ps_parser",
+ "rasterizer",
 ]
+
+[[package]]
+name = "rasterizer"
+version = "0.1.0"

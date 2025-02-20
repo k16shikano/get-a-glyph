@@ -1,5 +1,6 @@
+use crate::truetype::{SimpleGlyph, GlyphType};
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io::{Cursor, Seek, SeekFrom, Read};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use crate::tables::loca::{LocaTable, LocaFormat};
 
 #[derive(Debug)]
@@ -8,7 +9,6 @@ pub struct GlyfTable {
   pub glyphs: Vec<Glyph>,
 }
 
-// glyphの構造 (単純化)
 #[derive(Debug)]
 pub struct Glyph {
   #[allow(dead_code)]
@@ -78,11 +78,44 @@ impl GlyfTable {
         cursor.read_exact(&mut outline_data).map_err(|e| e.to_string())?;
         glyph.data = outline_data;
       }
-      
+
       glyphs.push(glyph);
       cursor.seek(SeekFrom::Start(current_position)).map_err(|e| e.to_string())?;
     }
     
     Ok(GlyfTable { glyphs })
+  }
+
+  pub fn get_glyph_data(&self, glyph_id: usize) -> Result<SimpleGlyph, String> {
+    if let Some(glyph) = self.glyphs.get(glyph_id) {
+      match Glyph::get_glyph_type(glyph) {
+        GlyphType::Simple => SimpleGlyph::parse(glyph),
+        GlyphType::Composite => Err("Composite glyphs are not supported yet".to_string()),
+        GlyphType::Empty => Ok(SimpleGlyph {
+          end_pts_of_contours: vec![],
+          instruction_length: 0,
+          instructions: vec![],
+          flags: vec![],
+          x_coordinates: vec![],
+          y_coordinates: vec![],
+          points: vec![],
+        }),
+      }
+    } else {
+      Err(format!("Glyph not found: {}", glyph_id))
+    }
+  }
+}
+
+#[allow(dead_code)]
+impl Glyph {
+  fn get_glyph_type(glyph: &Glyph) -> GlyphType {
+    if glyph.number_of_contours > 0 {
+      GlyphType::Simple
+    } else if glyph.number_of_contours < 0 {
+      GlyphType::Composite
+    } else {
+      GlyphType::Empty
+    }
   }
 }

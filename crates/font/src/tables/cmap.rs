@@ -137,28 +137,29 @@ impl CmapTable {
     Ok(cmap_format4)
   }
 
-pub fn get_glyph_id(char_code: u16, cmap_format4: &CmapFormat4) -> Option<u16> {
+pub fn get_glyph_id(char_code: u32, cmap_format4: &CmapFormat4) -> Option<u16> {
   let seg_count = cmap_format4.seg_count_x2 / 2;
   
   for i in 0..seg_count as usize {
-    if char_code >= cmap_format4.start_code[i] && char_code <= cmap_format4.end_code[i] {
+    if (char_code as u16) >= cmap_format4.start_code[i] && 
+       (char_code as u16) <= cmap_format4.end_code[i] {
       if cmap_format4.id_range_offset[i] == 0 {
         return Some(((char_code as i32 + cmap_format4.id_delta[i] as i32) % 65536) as u16);
       } else {
         let index = (cmap_format4.id_range_offset[i] as usize) / 2
-        + (char_code - cmap_format4.start_code[i]) as usize
+        + ((char_code as u16 - cmap_format4.start_code[i]) as usize)
         + i;
         
         if index < cmap_format4.glyph_id_array.len() {
           return Some(cmap_format4.glyph_id_array[index]);
         } else {
           return None;
-          }
         }
       }
     }
-    None // 該当するセグメントが見つからない
   }
-} 
+  None
+}
+}
 
 

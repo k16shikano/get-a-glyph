@@ -1,4 +1,5 @@
 mod tables;
+pub mod truetype;
 
 use std::io::{Cursor, Read};
 use byteorder::{BigEndian, ReadBytesExt};
@@ -73,7 +74,7 @@ impl Parse for Sfnt {
 }
 
 impl Sfnt {
-  pub fn get_glyph_data(&self, _glyph_name: &str, data: &[u8]) -> Result<String, String> {
+  pub fn get_glyph_data(&self, glyph_name: &str, data: &[u8]) -> Result<SimpleGlyph, String> {
     let mut cursor = Cursor::new(data);
     let saved_position = cursor.position();
 
@@ -114,7 +115,9 @@ impl Sfnt {
     cmap_cursor.read_exact(&mut subtable_data).unwrap();
     let subtable = CmapTable::parse_format4(&subtable_data, subtable_length as u16)?;
     
-    let glyph_id = CmapTable::get_glyph_id(0x0041, &subtable).unwrap_or(0);
+    let c = glyph_name.chars().next().ok_or("Invalid glyph name")?;
+    let code_point = c as u32;
+    let glyph_id = CmapTable::get_glyph_id(code_point, &subtable).unwrap_or(0);
 
     cursor.set_position(saved_position);
     let mut head_data = vec![0; head_table.length as usize];
@@ -144,9 +147,11 @@ impl Sfnt {
     cursor.set_position(glyf_table.offset as u64);
     cursor.read_exact(&mut glyf_data).unwrap();
     
-    let _glyf_table = GlyfTable::parse(&glyf_data, &loca_table)?;
+    let glyf_table = GlyfTable::parse(&glyf_data, &loca_table)?;
     let _glyph_offset = LocaTable::get_glyph_offset(&loca_data, glyph_id, index_to_loc_format);
     
-    Ok(format!("{:?}", glyf_data))
+    glyf_table.get_glyph_data(glyph_id as usize)
   }
 }
+
+pub use truetype::*;
