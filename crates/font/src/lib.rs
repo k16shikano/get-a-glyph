@@ -78,15 +78,22 @@ impl Sfnt {
     let mut cursor = Cursor::new(data);
     let saved_position = cursor.position();
 
-    let Some(head_table) = self.records.iter().find(|record| record.tag == "head") else {
-      return Err("headテーブルが見つかりません".to_string());
-    };
-    let Some(loca_table) = self.records.iter().find(|record| record.tag == "loca") else {
-      return Err("locaテーブルが見つかりません".to_string());
-    };
-    let Some(glyf_table) = self.records.iter().find(|record| record.tag == "glyf") else {
-      return Err("glyfテーブルが見つかりません".to_string());
-    };
+    let head_table = self.records.iter().find(|record| record.tag == "head")
+        .ok_or("headテーブルが見つかりません")?;
+    
+    // CBDTテーブルの存在チェック
+    let is_color_emoji = self.records.iter().any(|record| record.tag == "CBDT");
+    
+    if is_color_emoji {
+        return Err("色絵文字フォントは現在サポートされていません".to_string());
+    }
+    
+    let loca_table = self.records.iter().find(|record| record.tag == "loca")
+        .ok_or("locaテーブルが見つかりません（色絵文字フォントの可能性があります）")?;
+    
+    let glyf_table = self.records.iter().find(|record| record.tag == "glyf")
+        .ok_or("glyfテーブルが見つかりません（色絵文字フォントの可能性があります）")?;
+    
     let Some(cmap_table) = self.records.iter().find(|record| record.tag == "cmap") else {
       return Err("cmapテーブルが見つかりません".to_string());
     };
