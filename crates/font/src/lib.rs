@@ -99,19 +99,28 @@ impl Sfnt {
     cursor.read_exact(&mut cmap_data).unwrap();
     
     let cmap_table = CmapTable::parse(&cmap_data)?;
-    let platform_id = 0; // 固定
-    let encoding_id = 3; // 固定
+    let platform_id = 3;  // Windows
+    let encoding_id = 1;  // Unicode BMP (Basic Multilingual Plane)
     
     let mut cmap_cursor = Cursor::new(&cmap_data);
-    let Some(record) = cmap_table.encoding_records.iter().find(|&record| record.platform_id == platform_id && record.encoding_id == encoding_id) else {
-      return Err("指定されたEncodingRecordが見つかりません".to_string());
+    let record = match cmap_table.encoding_records.iter().find(|&record| record.platform_id == platform_id && record.encoding_id == encoding_id) {
+        Some(record) => record,
+        None => {
+            // フォールバック: Unicode platform (0)を試す
+            let platform_id = 0;  // Unicode
+            let encoding_id = 3;  // Unicode 2.0以降
+            cmap_table.encoding_records.iter()
+                .find(|&record| record.platform_id == platform_id && record.encoding_id == encoding_id)
+                .ok_or("互換性のあるEncodingRecordが見つかりません")?
+        }
     };
     
     let subtable_offset = record.offset;
     cmap_cursor.set_position(subtable_offset as u64);
     let _format = cmap_cursor.read_u16::<BigEndian>().unwrap() as u32;
     let subtable_length = cmap_cursor.read_u16::<BigEndian>().unwrap() as u32;
-    let mut subtable_data = vec![0; (subtable_length - subtable_offset + 16) as usize]; // 16はfomatとlengthフィールドの分。これらはcursorで読み込み済みなのでparserでも読み込むとsubtableのデータが不足する
+    let data_size = subtable_length - 4; // formatとlengthフィールド(各2バイト)を除いたサイズ
+    let mut subtable_data = vec![0; data_size as usize];
     cmap_cursor.read_exact(&mut subtable_data).unwrap();
     let subtable = CmapTable::parse_format4(&subtable_data, subtable_length as u16)?;
     
